@@ -2,57 +2,29 @@ pipeline {
     agent any
 
     environment {
-        DEV_IMAGE = "sathishbalaji03/dev:latest"
-        PROD_IMAGE = "sathishbalaji03/prod:latest"
+        IMAGE = "sathishbalaji03/dev:latest"
     }
 
     stages {
 
-        stage('Build Docker Image') {
+        stage('Build Image') {
             steps {
                 sh 'docker build -t react-app .'
             }
         }
 
-        stage('Push Dev Image') {
-            when {
-                branch 'dev'
-            }
+        stage('Push Image') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-
                     sh '''
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                    docker tag react-app $DEV_IMAGE
-                    docker push $DEV_IMAGE
-
-                    docker logout
-                    '''
-                }
-            }
-        }
-
-        stage('Push Prod Image') {
-            when {
-                branch 'master'
-            }
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-
-                    sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-
-                    docker tag react-app $PROD_IMAGE
-                    docker push $PROD_IMAGE
+                    docker tag react-app $IMAGE
+                    docker push $IMAGE
 
                     docker logout
                     '''
@@ -63,14 +35,15 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                docker stop react-app || true
-                docker rm react-app || true
+                docker rm -f react-app || true
 
-                if [ "$BRANCH_NAME" = "master" ]; then
-                    docker run -d --name react-app -p 80:80 $PROD_IMAGE
-                else
-                    docker run -d --name react-app -p 80:80 $DEV_IMAGE
-                fi
+                docker pull $IMAGE
+
+                docker run -d \
+                  --name react-app \
+                  --restart always \
+                  -p 80:80 \
+                  $IMAGE
                 '''
             }
         }
@@ -78,11 +51,11 @@ pipeline {
 
     post {
         success {
-            echo "Build, Push and Deployment Successful."
+            echo "Deployment Successful"
         }
 
         failure {
-            echo "Pipeline Failed."
+            echo "Deployment Failed"
         }
     }
 }
