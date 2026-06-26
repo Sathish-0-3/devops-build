@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE = "sathishbalaji03/dev:latest"
+        IMAGE = "sathishbalaji03/prod:latest"
     }
 
     stages {
@@ -20,10 +20,12 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
+
                     sh '''
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
                     docker tag react-app $IMAGE
+
                     docker push $IMAGE
 
                     docker logout
@@ -40,22 +42,12 @@ pipeline {
                 docker pull $IMAGE
 
                 docker run -d \
-                  --name react-app \
-                  --restart always \
-                  -p 80:80 \
-                  $IMAGE
+                --name react-app \
+                --restart always \
+                -p 80:80 \
+                $IMAGE
                 '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo "Deployment Successful"
-        }
-
-        failure {
-            echo "Deployment Failed"
         }
     }
 }
