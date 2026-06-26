@@ -35,18 +35,16 @@ pipeline {
         }
 
         stage('Deploy') {
-            steps {
-                sh '''
-                docker rm -f react-app || true
+    steps {
+        sh '''
+        docker rm -f react-app || true
 
-                docker pull $IMAGE
-
-                docker run -d \
-                --name react-app \
-                --restart always \
-                -p 80:80 \
-                $IMAGE
-                '''
+        docker run -d \
+          --name react-app \
+          --restart always \
+          -p 80:80 \
+          react-app
+        '''
             }
         }
     }
